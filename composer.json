@@ -1,9 +1,9 @@
 {
-  "name": "pasinter/ohm-bundle",
-  "type": "library",
+  "name": "pasinter/redis-ohm-bundle",
+  "type": "symfony-bundle",
   "description": "Symfony Bundle for Redis Object-Hash Mapper",
   "keywords": ["persistence", "ohm", "redis", "symfony"],
-  "homepage": "https://github.com/pasinter/PasinterOHMBundle",
+  "homepage": "https://github.com/pasinter/RedisOHMBundle",
   "license": "MIT",
   "authors": [
     {"name": "pasinter"}
@@ -12,7 +12,8 @@
     "php": ">=5.4",
     "pasinter/redis-ohm": "dev-master",
     "symfony/framework-bundle": "~2.3|~3.0",
-    "symfony/console": "~2.3|~3.0"
+    "symfony/console": "~2.3|~3.0",
+    "symfony/doctrine-bridge": "~2.3"
   },
   "require-dev": {
     "phpunit/phpunit": "~4.0"
@@ -21,7 +22,7 @@
     "symfony/web-profiler-bundle": "to use the data collector"
   },
   "autoload": {
-    "psr-4": { "Pasinter\\Bundle\\OHMBundle\\": "" }
+    "psr-4": { "Pasinter\\Bundle\\RedisOHMBundle\\": "" }
   },
   "extra": {
     "branch-alias": {
