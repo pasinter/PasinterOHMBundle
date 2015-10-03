@@ -1,0 +1,52 @@
+<?xml version="1.0" ?>
+
+<container xmlns="http://symfony.com/schema/dic/services"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://symfony.com/schema/dic/services http://symfony.com/schema/dic/services/services-1.0.xsd">
+
+    <parameters>
+        <parameter key="pasinter_ohm.class">Pasinter\Bundle\RedisOHMBundle\ManagerRegistry</parameter>
+        <parameter key="pasinter_ohm.ohm.configuration.class">Doctrine\ORM\Configuration</parameter>
+        <parameter key="pasinter_ohm.ohm.entity_manager.class">Doctrine\ORM\EntityManager</parameter>
+        <parameter key="pasinter_ohm.proxy.class">Doctrine\Common\Proxy\Proxy</parameter>
+        
+        <!-- cache -->
+        <parameter key="pasinter_ohm.ohm.cache.array.class">Doctrine\Common\Cache\ArrayCache</parameter>
+        <parameter key="pasinter_ohm.ohm.cache.memcache.class">Doctrine\Common\Cache\MemcacheCache</parameter>
+        <parameter key="pasinter_ohm.ohm.cache.memcache_host">localhost</parameter>
+        <parameter key="pasinter_ohm.ohm.cache.memcache_port">11211</parameter>
+        <parameter key="pasinter_ohm.ohm.cache.memcache_instance.class">Memcache</parameter>
+        <parameter key="pasinter_ohm.ohm.cache.memcached.class">Doctrine\Common\Cache\MemcachedCache</parameter>
+        <parameter key="pasinter_ohm.ohm.cache.memcached_host">localhost</parameter>
+        <parameter key="pasinter_ohm.ohm.cache.memcached_port">11211</parameter>
+        <parameter key="pasinter_ohm.ohm.cache.memcached_instance.class">Memcached</parameter>
+        <parameter key="pasinter_ohm.ohm.cache.redis.class">Doctrine\Common\Cache\RedisCache</parameter>
+        <parameter key="pasinter_ohm.ohm.cache.redis_host">localhost</parameter>
+        <parameter key="pasinter_ohm.ohm.cache.redis_port">6379</parameter>
+        <parameter key="pasinter_ohm.ohm.cache.redis_instance.class">Redis</parameter>
+        <parameter key="pasinter_ohm.ohm.cache.xcache.class">Doctrine\Common\Cache\XcacheCache</parameter>
+        <parameter key="pasinter_ohm.ohm.cache.wincache.class">Doctrine\Common\Cache\WinCacheCache</parameter>
+        <parameter key="pasinter_ohm.ohm.cache.zenddata.class">Doctrine\Common\Cache\ZendDataCache</parameter>
+        
+        <!-- metadata -->
+        <parameter key="pasinter_ohm.ohm.metadata.annotation.class">Pasinter\OHM\Mapping\Driver\AnnotationDriver</parameter>
+    </parameters>
+
+    <services>
+        <service id="pasinter_ohm.ohm.configuration" class="%pasinter_ohm.ohm.configuration.class%" abstract="true" public="false" />
+        <service id="pasinter_ohm.ohm.entity_manager.abstract" class="%pasinter_ohm.ohm.entity_manager.class%" abstract="true" />
+        
+        <service id="pasinter_ohm" class="%pasinter_ohm.class%">
+            <argument>PHPCR</argument>
+            <argument>%pasinter_ohm.storage.connections%</argument>
+            <argument>%pasinter_ohm.ohm.entity_managers%</argument>
+            <argument>%pasinter_ohm.ohm.default_connection%</argument>
+            <argument>%pasinter_ohm.ohm.default_entity_manager%</argument>
+            <argument>%pasinter_ohm.proxy.class%</argument>
+            <call method="setContainer">
+                <argument type="service" id="service_container" />
+            </call>
+        </service>
+    </services>
+    
+</container>

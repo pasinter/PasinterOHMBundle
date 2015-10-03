@@ -18,85 +18,116 @@ class Configuration implements ConfigurationInterface
         $treeBuilder = new TreeBuilder();
         $rootNode = $treeBuilder->root('pasinter_redis');
         
-        $this->addOrmSection($rootNode);
-        $this->addConnectionsSection($rootNode);
+        $this->addOhmSection($rootNode);
+        $this->addStorageSection($rootNode);
         
         return $treeBuilder;
     }
     
     /**
-     * Adds the "connections" config section.
-     *
-     * @param ArrayNodeDefinition $rootNode
+     * 
+     * @param ArrayNodeDefinition $node
      */
-    private function addConnectionsSection(ArrayNodeDefinition $rootNode)
+    private function addStorageSection(ArrayNodeDefinition $node)
     {
-        $rootNode
-            ->fixXmlConfig('connection')
+        $node
             ->children()
-                ->arrayNode('connections')
-                    ->useAttributeAsKey('id')
-                    ->prototype('array')
-                        ->performNoDeepMerging()
-                        ->children()
-                            ->scalarNode('dsn')->end()
-                            ->arrayNode('options')
-                                ->performNoDeepMerging()
-                                ->children()
-                                    ->integerNode('connectTimeoutMS')->end()
-                                    ->integerNode('retryIntervalMS')->end()
-                                ->end()
-                            ->end()
-                        ->end()
-                    ->end()
+            ->arrayNode('storage')->addDefaultsIfNotSet()
+                ->children()
+                    ->scalarNode('default_connection')->defaultValue('default')->end()
+                    ->append($this->addConnectionsSection())
                 ->end()
+            ->end()
             ->end()
         ;
     }
     
-    private function addOrmSection(ArrayNodeDefinition $node)
+    /**
+     * Adds the "connections" config section.
+     *
+     */
+    private function addConnectionsSection()
+    {
+        $treeBuilder = new TreeBuilder();
+        $node = $treeBuilder->root('connections');
+        /** @var $connectionNode ArrayNodeDefinition */
+        $connectionNode = $node
+            ->requiresAtLeastOneElement()
+            ->useAttributeAsKey('name')
+            ->prototype('array')
+        ;
+
+        $connectionNode
+            ->children()
+                ->scalarNode('dsn')->defaultValue('redis://localhost')->end()
+                ->scalarNode('storage_class')->defaultValue('Pasinter\OHM\Storage\RedisStorage')->end()
+                ->arrayNode('options')
+                    ->performNoDeepMerging()
+                    ->children()
+                        ->integerNode('profile')->defaultValue('2.0')->end()
+                        ->integerNode('connection_timeout')->defaultNull()->end()
+                        ->integerNode('retry_interval')->defaultNull()->end()
+                    ->end()
+                ->end()
+                ->booleanNode('logging')->defaultFalse()->end()
+                ->booleanNode('profiling')->defaultFalse()->end()
+            ->end()
+        ;
+
+        return $node;
+    }
+    
+    /**
+     * 
+     * @param ArrayNodeDefinition $node
+     */
+    private function addOhmSection(ArrayNodeDefinition $node)
     {
         $node
             ->children()
-                ->arrayNode('orm')
+                ->arrayNode('ohm')->addDefaultsIfNotSet()
                     ->beforeNormalization()
                         ->ifTrue(function ($v) { return null === $v || (is_array($v) && !array_key_exists('entity_managers', $v) && !array_key_exists('entity_manager', $v)); })
                         ->then(function ($v) {
                             $v = (array) $v;
                             // Key that should not be rewritten to the connection config
-                            $excludedKeys = array(
+                            $excludedKeys = [
                                 'default_entity_manager' => true,
                                 'auto_generate_proxy_classes' => true,
                                 'proxy_dir' => true,
                                 'proxy_namespace' => true
-                            );
-                            $entityManagers = array();
+                            ];
+                            $entityManagers = [];
                             foreach ($v as $key => $value) {
                                 if (isset($excludedKeys[$key])) {
                                     continue;
                                 }
-                                $documentManagers[$key] = $v[$key];
+                                $entityManagers[$key] = $v[$key];
                                 unset($v[$key]);
                             }
                             $v['default_entity_manager'] = isset($v['default_entity_manager']) ? (string) $v['default_entity_manager'] : 'default';
-                            $v['entity_managers'] = array($v['default_entity_manager'] => $documentManagers);
+                            $v['entity_managers'] = [$v['default_entity_manager'] => $entityManagers];
                             return $v;
                         })
                     ->end()
                     ->children()
-                        ->scalarNode('default_entity_manager')->end()
+                        ->scalarNode('default_entity_manager')->defaultValue('default')->end()
                         ->booleanNode('auto_generate_proxy_classes')->defaultFalse()->end()
                         ->scalarNode('proxy_dir')->defaultValue('%kernel.cache_dir%/pasinter/RedisOHMProxies')->end()
                         ->scalarNode('proxy_namespace')->defaultValue('RedisOHMProxies')->end()
                     ->end()
                     ->fixXmlConfig('entity_manager')
-                    ->append($this->getOrmDocumentManagersNode())
+                    ->append($this->getEntityManagersNode())
                 ->end()
             ->end()
         ;
     }
     
-    private function getOrmDocumentManagersNode()
+    /**
+     * 
+     * @return ArrayNodeDefinition
+     */
+    private function getEntityManagersNode()
     {
         $treeBuilder = new TreeBuilder();
         $node = $treeBuilder->root('entity_managers');
@@ -105,44 +136,25 @@ class Configuration implements ConfigurationInterface
             ->useAttributeAsKey('name')
             ->prototype('array')
                 ->addDefaultsIfNotSet()
-                ->append($this->getOdmCacheDriverNode('metadata_cache_driver'))
+                ->append($this->getCacheDriverNode('metadata_cache_driver'))
+                ->append($this->getCacheDriverNode('query_cache_driver'))
+                ->append($this->getCacheDriverNode('result_cache_driver'))
                 ->children()
-                    ->scalarNode('session')->end()
                     ->scalarNode('configuration_id')->end()
                     ->scalarNode('class_metadata_factory_name')->defaultValue('Pasinter\OHM\Mapping\ClassMetadataFactory')->end()
-                    ->scalarNode('auto_mapping')->defaultFalse()->end()
                     ->scalarNode('default_repository_class')->defaultValue('Pasinter\OHM\EntityRepository')->end()
                     ->scalarNode('repository_factory')->defaultNull()->end()
-                ->end()
-                ->fixXmlConfig('mapping')
-                ->children()
-                    ->arrayNode('mappings')
-                        ->useAttributeAsKey('name')
-                        ->prototype('array')
-                            ->beforeNormalization()
-                                ->ifString()
-                                ->then(function ($v) { return array('type' => $v); })
-                            ->end()
-                            ->treatNullLike(array())
-                            ->treatFalseLike(array('mapping' => false))
-                            ->performNoDeepMerging()
-                            ->children()
-                                ->scalarNode('mapping')->defaultValue(true)->end()
-                                ->scalarNode('type')->end()
-                                ->scalarNode('dir')->end()
-                                ->scalarNode('alias')->end()
-                                ->scalarNode('prefix')->end()
-                                ->booleanNode('is_bundle')->end()
-                            ->end()
-                        ->end()
-                    ->end()
                 ->end()
             ->end()
         ;
         return $node;
     }
     
-    private function getOdmCacheDriverNode($name)
+    /**
+     * 
+     * @return ArrayNodeDefinition
+     */
+    private function getCacheDriverNode($name)
     {
         $treeBuilder = new TreeBuilder();
         $node = $treeBuilder->root($name);
@@ -151,17 +163,17 @@ class Configuration implements ConfigurationInterface
             ->beforeNormalization()
             ->ifString()
             ->then(function ($v) {
-            return array('type' => $v);
+            return ['type' => $v];
         })
             ->end()
             ->children()
-            ->scalarNode('type')->defaultValue('array')->end()
-            ->scalarNode('host')->end()
-            ->scalarNode('port')->end()
-            ->scalarNode('instance_class')->end()
-            ->scalarNode('class')->end()
-            ->scalarNode('id')->end()
-            ->scalarNode('namespace')->defaultNull()->end()
+                ->scalarNode('type')->defaultValue('array')->end()
+                ->scalarNode('host')->end()
+                ->scalarNode('port')->end()
+                ->scalarNode('instance_class')->end()
+                ->scalarNode('class')->end()
+                ->scalarNode('id')->end()
+                ->scalarNode('namespace')->defaultNull()->end()
             ->end();
         return $node;
     }
