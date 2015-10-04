@@ -10,7 +10,7 @@
   ],
   "require": {
     "php": ">=5.4",
-    "pasinter/redis-ohm": "dev-master",
+    "pasinter/redis-ohm": "~0.1@dev",
     "symfony/framework-bundle": "~2.3|~3.0",
     "symfony/console": "~2.3|~3.0",
     "symfony/doctrine-bridge": "~2.3"
@@ -26,7 +26,7 @@
   },
   "extra": {
     "branch-alias": {
-      "dev-master": "0.1.x-dev"
+      "dev-master": "1.0.x-dev"
     }
   }
 }
