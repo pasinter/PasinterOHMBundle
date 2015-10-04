@@ -1,5 +1,15 @@
 checks:
-    php: true
+    php:
+        code_rating: true
+        duplication: true
+        return_doc_comments: true
+        properties_in_camelcaps: true
+        parameter_doc_comments: true
+        uppercase_constants: true
+        function_in_camel_caps: true
+        fix_line_ending: true
+        optional_parameters_at_the_end: true
+        classes_in_camel_caps: true
 
 filter:
     paths: [lib/*]
